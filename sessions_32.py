@@ -35,10 +35,12 @@ parser.add_argument("-s", "--stime",
                     help="start time")
 parser.add_argument("-e", "--etime", 
                     help="end time")
-parser.add_argument("-c", "--cname", 
-                    help="country name")
+# parser.add_argument("-c", "--cname", 
+#                    help="country name")
 args = parser.parse_args()
 
+lan = "/zh-tw/"
+pID = "233"
 
 def get_top_keywords(service, profile_id):
   """Executes and returns data from the Core Reporting API.
@@ -58,9 +60,10 @@ def get_top_keywords(service, profile_id):
       start_date=args.stime,
       end_date=args.etime,
       metrics='ga:sessions',
-      dimensions='ga:date',
-      sort="ga:date",
-      segment = "sessions::condition::ga:country=@{}".format(args.cname)
+      #dimensions='ga:date',
+      #sort="ga:date",
+      #segment = "sessions::condition::ga:country=@{}".format(args.cname)
+      filters = "ga:pagePath=@{};ga:pagePath=~/model\.php\?II={}".format(lan, pID)
       ).execute()
 
 def print_results(results):
@@ -79,7 +82,7 @@ def print_results(results):
 
   # Open a file.
   filepath = 'C:\\Users\\Lily\\Documents\\GA\\data'     #change this to your actual file path
-  filename = '{}_0324.csv'.format(args.cname)         #change this to your actual file name
+  filename = '0324_TVS.csv'#.format(args.cname)         #change this to your actual file name
   f = open(filepath.strip('\\') + '\\' + filename, 'wt')
 
   # Wrap file with a csv.writer
