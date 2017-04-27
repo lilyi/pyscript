@@ -30,6 +30,7 @@ service, flags = sample_tools.init("",
       'analytics', 'v3', __doc__, __file__,
       scope='https://www.googleapis.com/auth/analytics.readonly')
 profile_id = '3035421'
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--stime",
                     help="start time")
