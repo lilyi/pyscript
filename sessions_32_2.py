@@ -46,7 +46,7 @@ def get_top_keywords(service, profile_id, cname):
 #            filters = "ga:pagePath=@{};ga:pagePath=~/model\.php\?II={}".format(lan, pID)
             ).execute()
 
-def print_results(results):
+def print_results(results, cname):
     """Prints out the results.
     This prints out the profile name, the column headers, and all the rows of
     data.
@@ -57,8 +57,8 @@ def print_results(results):
     print('Profile Name: %s' % results.get('profileInfo').get('profileName'))
     print()
     # Open a file.
-    filepath = 'C:\\Users\\Lily\\Documents\\GA\\data'     #change this to your actual file path
-    filename = '0324_TVS.csv'#.format(args.cname)         #change this to your actual file name
+    filepath = 'C:\\Users\\Lily\\Documents\\GA\\data\\total_sessions_32'     #change this to your actual file path
+    filename = '{}.csv'.format(cname)         #change this to your actual file name
     f = open(filepath.strip('\\') + '\\' + filename, 'wt')
     # Wrap file with a csv.writer
     writer = csv.writer(f, lineterminator='\n')
@@ -95,7 +95,7 @@ def main():
         for c in clist:
             results = get_top_keywords(service, profile_id, c)
             #print(results)
-            print_results(results)
+            print_results(results, c)
     except TypeError as error:
         # Handle errors in constructing a query.
         print(('There was an error in constructing your query : %s' % error))
