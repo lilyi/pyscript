@@ -9,10 +9,11 @@ Created on Fri Mar 24 15:28:09 2017
 
 import argparse
 import csv
+import os, httplib2, webbrowser
 from googleapiclient.errors import HttpError
-from googleapiclient import sample_tools
 from oauth2client.client import AccessTokenRefreshError
-from oauth2client.service_account import ServiceAccountCredentials
+from oauth2client import client
+from apiclient import discovery
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--stime",
@@ -26,16 +27,46 @@ args = parser.parse_args()
 lan = "/zh-tw/"
 pID = "233"
 
-def get_top_keywords(service, profile_id, cname):
-    """Executes and returns data from the Core Reporting API.
-    This queries the API for the top 25 organic search terms by visits.
-    Args:
-    service: The service object built by the Google API Python client library.
-    profile_id: String The profile ID from which to retrieve analytics data.
-    Returns:
-    The response returned from the Core Reporting API.
+file_path = os.path.dirname(__file__)
+
+def acquire_oauth2_credentials():
     """
-    return service.data().ga().get(
+    Flows through OAuth 2.0 authorization process for credentials.
+    Create credentials file as cre.json
+    """
+    if os.path.isfile("%s/cre.json" % file_path):
+        f = open("%s/cre.json" % file_path, "r")
+        credentials = client.OAuth2Credentials.from_json(f.read())
+        f.close()
+    else:    
+        flow = client.flow_from_clientsecrets(
+            "%s/client_secrets.json" % file_path,
+            scope='https://www.googleapis.com/auth/analytics.readonly',
+            redirect_uri='urn:ietf:wg:oauth:2.0:oob')
+        auth_uri = flow.step1_get_authorize_url()
+        webbrowser.open(auth_uri)
+        auth_code = input('Enter the authentication code: ')
+        credentials = flow.step2_exchange(auth_code)
+        write_credentials("%s/cre.json" % file_path, credentials)
+    return credentials
+
+def write_credentials(fname, credentials):
+    """Writes credentials as JSON to file.""" 
+    f = open(fname, "w")
+    f.write(credentials.to_json())
+    f.close()
+
+def create_service_object(credentials):
+    """Creates Service object for credentials."""
+    http_auth = httplib2.Http()
+    http_auth = credentials.authorize(http_auth)
+    service = discovery.build('analytics', 'v3', http=http_auth)
+    return service
+
+def get_top_keywords(credentials, profile_id, cname):
+    try:
+        service = create_service_object(credentials) #The service object built by the Google API Python client library.
+        return service.data().ga().get(
             ids='ga:' + profile_id,
             start_date=args.stime,
             end_date=args.etime,
@@ -45,6 +76,18 @@ def get_top_keywords(service, profile_id, cname):
             segment = "sessions::condition::ga:country=@{}".format(cname)
 #            filters = "ga:pagePath=@{};ga:pagePath=~/model\.php\?II={}".format(lan, pID)
             ).execute()
+    except TypeError as error:
+        # Handle errors in constructing a query.
+        print(('There was an error in constructing your query : %s' % error))
+    
+    except HttpError as error:
+        # Handle API errors.
+        print(('Arg, there was an API error : %s : %s' %
+               (error.resp.status, error._get_reason())))
+    except AccessTokenRefreshError:
+        # Handle Auth errors.
+        print ('The credentials have been revoked or expired, please re-run '
+               'the application to re-authorize')
 
 def print_results(results, cname):
     """Prints out the results.
@@ -84,16 +127,10 @@ def main():
     clist = ["Australia","Austria","Belgium","Canada","Czechia","Denmark","France","Germany","Greece","Hong Kong","Hungary","India","Iran","Israel","Italy","Japan","Mexico","Netherlands","Norway","Poland","Portugal","Romania","South Africa","South Korea","Spain","Sweden","Switzerland","Taiwan","Thailand","Turkey","United Kingdom","United States"]
 
     try:
-        scopes = ['https://https://www.googleapis.com/auth/analytics']
-        ServiceAccountCredentials.from_json_keyfile_name(
-                'C:/Users/Lily/Documents/GA/R/key_secrets.json', scopes=scopes)
-        service, flags = sample_tools.init("", 
-        'analytics', 'v3', __doc__, __file__,
-        scope='https://www.googleapis.com/auth/analytics.readonly')
-        
+        credentials = acquire_oauth2_credentials()
         profile_id = '3035421'
         for c in clist:
-            results = get_top_keywords(service, profile_id, c)
+            results = get_top_keywords(credentials, profile_id, c)
             #print(results)
             print_results(results, c)
     except TypeError as error:
